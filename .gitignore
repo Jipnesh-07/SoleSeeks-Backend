@@ -1,0 +1,64 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+*.log
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# dotenv environment variables
+.env
+
+# Database
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+
+# Build files
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Sentry Files
+.sentryclirc
+
+# Coverage directory used by coverage testing tools like istanbul
+coverage/
+*.lcov
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE settings and configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS files
+*.DS_Store
+
+# Ignore local MongoDB data (if using local MongoDB)
+data/db/
+
+# Ignore npm cache
+.npm/
+
+# Ignore test and debug coverage reports
+.nyc_output/
+coverage/
+
+# Ignore compiled JavaScript files
+*.js.map
