@@ -1,42 +1,56 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const biddingSchema = new mongoose.Schema({
-    sneaker: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Sneaker', 
-        required: true 
+const BidSchema = new Schema({
+    sneaker: {
+        type: Schema.Types.ObjectId,
+        ref: 'Sneaker',
+        required: true
     },
-    currentPrice: { 
-        type: Number, 
-        required: true 
+    currentPrice: {
+        type: Number,
+        required: true
     },
-    minimumBidIncrement: { 
-        type: Number, 
-        default: 50 
-    },
-    bids: [{
-        user: { 
-            type: mongoose.Schema.Types.ObjectId, 
-            ref: 'User' 
-        },
-        amount: Number,
-        createdAt: { 
-            type: Date, 
-            default: Date.now 
-        }
-    }],
     highestBid: {
         type: Number,
-        default: 0
+        required: true
     },
-    biddingEndsAt: { 
-        type: Date, 
-        required: true 
+    instantBuyPrice: {
+        type: Number,  // Highest price for instant buy option
+        required: true
     },
-    isActive: { 
-        type: Boolean, 
-        default: true 
+    minimumBidIncrement: {
+        type: Number,  // Minimum increment preset by app
+        default: 500
+    },
+    biddingEndsAt: {
+        type: Date,
+        required: true
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    bids: [{
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        amount: {
+            type: Number,
+            required: true
+        }
+    }],
+    winner: {
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        amount: Number,
+        status: { type: String, enum: ['pending', 'paid'], default: 'pending' } // 'pending' until payment is made
     }
-}, { timestamps: true });
+});
 
-module.exports = mongoose.model('Bid', biddingSchema);
+const Bid = mongoose.model('Bid', BidSchema);
+module.exports = Bid;

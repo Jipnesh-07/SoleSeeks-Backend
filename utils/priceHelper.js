@@ -4,3 +4,4 @@ exports.adjustPriceByCondition = (originalPrice, condition) => {
     else if (condition === 'best') factor = 1.5;
     return originalPrice * factor;
 };
+ 
