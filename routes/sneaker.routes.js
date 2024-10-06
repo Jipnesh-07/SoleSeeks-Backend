@@ -8,5 +8,6 @@ router.put('/update/:sneakerId', authMiddleware, SneakerController.updateSneaker
 router.delete('/delete/:sneakerId', authMiddleware, SneakerController.deleteSneaker);
 router.get('/all', SneakerController.getAllSneakers);
 router.get('/:sneakerId', SneakerController.getSneakerById);
+router.get('/userSneaker/:userId', authMiddleware, SneakerController.getSneakersByUser)
 
 module.exports = router;

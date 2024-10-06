@@ -181,6 +181,27 @@ exports.removeFromCart = async (req, res) => {
 };
 
 
+exports.getCartItems = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId).populate('cart');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get the sneakers in the cart
+    const cartItems = user.cart;
+
+    res.status(200).json({ cart: cartItems });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 exports.removeFromWishlist = async (req, res) => {
   const userId = req.user._id; // Get user from auth middleware
   const { sneakerId } = req.body;
@@ -202,6 +223,29 @@ exports.removeFromWishlist = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+exports.getWishlistItems = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId).populate('wishlist');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get the sneakers in the wishlist
+    const wishlistItems = user.wishlist;
+
+    res.status(200).json({ wishlist: wishlistItems });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 
 exports.rateUser = async (req, res) => {
   const userId = req.user._id; // Get user from auth middleware

@@ -80,3 +80,19 @@ exports.getSneakerById = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+
+exports.getSneakersByUser = async (req, res) => {
+    const { userId } = req.params; // Extract userId from URL parameters
+
+    try {
+        const sneakers = await Sneaker.find({ createdBy: userId });
+        if (sneakers.length === 0) {
+            return res.status(404).json({ message: 'No sneakers found for this user' });
+        }
+        res.json({ sneakers });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
