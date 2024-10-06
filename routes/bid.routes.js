@@ -19,6 +19,6 @@ router.get("/sneaker/:sneakerId", getActiveBidsForSneaker);
 router.get("/:bidId", getBidDetails);
 router.put("/update/:bidId", updateBid);
 router.delete("/delete/:bidId", deleteBid);
-router.get("/all", getAllActiveBids)
+router.get("/getAllActiveBids", getAllActiveBids)
 
 module.exports = router;

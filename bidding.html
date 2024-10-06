@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Bidding</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Real-Time Bidding System</h1>
+    <div>
+        <h2>Place a Bid</h2>
+        <label for="bidAmount">Bid Amount:</label>
+        <input type="number" id="bidAmount" placeholder="Enter your bid amount">
+        <button onclick="placeBid()">Place Bid</button>
+    </div>
+
+    <div id="bidDetails">
+        <h2>Current Bids</h2>
+        <p id="currentBid">Current Highest Bid: $0</p>
+    </div>
+
+    <script>
+        // Connect to Socket.IO server
+        const socket = io('http://localhost:3000');
+
+        // Mock user and bid data
+        const bidId = '6702d6cdf1b8aee60c900b11'; // Example bid ID
+        const userId = '66e96e343e80f2ce26c8ac21'; // Example user ID
+
+        // Join the bid room
+        socket.emit('joinRoom', bidId);
+
+        // Function to place a bid
+        function placeBid() {
+            const bidAmount = document.getElementById('bidAmount').value;
+
+            socket.emit('placeBid', {
+                bidId: bidId,
+                amount: parseFloat(bidAmount),
+                userId: userId
+            });
+        }
+
+        // Listen for the 'newBidPlaced' event
+        socket.on('newBidPlaced', (bid) => {
+            document.getElementById('currentBid').innerText = `Current Highest Bid: $${bid.highestBid}`;
+        });
+
+        // Listen for errors
+        socket.on('bidFailed', (data) => {
+            alert(data.message);
+        });
+    </script>
+</body>
+</html>

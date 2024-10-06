@@ -17,7 +17,7 @@ const bidSchema = new mongoose.Schema(
     ],
     isActive: { type: Boolean, default: true },
     biddingEndsAt: { type: Date, required: true },
-    instantBuyPrice: { type: Number }, // Instant Buy Price
+// Instant Buy Price
     minimumBidIncrement: { type: Number, default: 100 }, // Minimum bid increment
   },
   { timestamps: true }
