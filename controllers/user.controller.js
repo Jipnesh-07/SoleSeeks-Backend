@@ -5,10 +5,16 @@ const upload = require("../middleware/upload"); // Multer middleware for Cloudin
 const { cloudinary } = require("../config/cloudinary"); // Cloudinary config
 
 exports.register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body; // Now accepting role in the request
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashedPassword });
+    const userRole = role === "admin" ? "admin" : "user"; // Only allow 'admin' role if specified
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role: userRole,
+    });
     await user.save();
     res.status(201).json({ message: "User registered" });
   } catch (err) {
@@ -23,7 +29,10 @@ exports.login = async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET
+    ); // Include role in the token
     res.json({ token });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -57,22 +66,6 @@ exports.getUser = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// exports.updateUser = async (req, res) => {
-//   const { userId } = req.params; // User ID from the URL params
-//   const updateData = req.body; // Data to update
-
-//   try {
-//     const user = await User.findByIdAndUpdate(userId, updateData, {
-//       new: true,
-//     });
-//     if (!user) return res.status(404).json({ message: "User not found!" });
-
-//     res.status(200).json({ user, message: "User updated successfully!" });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
 
 exports.updateUser = (req, res) => {
   // Use Multer to handle file upload
@@ -171,25 +164,28 @@ exports.removeFromCart = async (req, res) => {
     }
 
     // Remove the sneaker from the cart
-    user.cart = user.cart.filter(id => id.toString() !== sneakerId.toString());
+    user.cart = user.cart.filter(
+      (id) => id.toString() !== sneakerId.toString()
+    );
     await user.save();
 
-    res.status(200).json({ message: "Sneaker removed from cart", cart: user.cart });
+    res
+      .status(200)
+      .json({ message: "Sneaker removed from cart", cart: user.cart });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 exports.getCartItems = async (req, res) => {
   const { userId } = req.params;
 
   try {
     // Find the user by ID
-    const user = await User.findById(userId).populate('cart');
+    const user = await User.findById(userId).populate("cart");
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Get the sneakers in the cart
@@ -200,7 +196,6 @@ exports.getCartItems = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 exports.removeFromWishlist = async (req, res) => {
   const userId = req.user._id; // Get user from auth middleware
@@ -215,25 +210,31 @@ exports.removeFromWishlist = async (req, res) => {
     }
 
     // Remove the sneaker from the cart
-    user.wishlist = user.wishlist.filter(id => id.toString() !== sneakerId.toString());
+    user.wishlist = user.wishlist.filter(
+      (id) => id.toString() !== sneakerId.toString()
+    );
     await user.save();
 
-    res.status(200).json({ message: "Sneaker removed from wishlist", wishlist: user.wishlist });
+    res
+      .status(200)
+      .json({
+        message: "Sneaker removed from wishlist",
+        wishlist: user.wishlist,
+      });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 exports.getWishlistItems = async (req, res) => {
   const { userId } = req.params;
 
   try {
     // Find the user by ID
-    const user = await User.findById(userId).populate('wishlist');
+    const user = await User.findById(userId).populate("wishlist");
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Get the sneakers in the wishlist
@@ -244,8 +245,6 @@ exports.getWishlistItems = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-
 
 exports.rateUser = async (req, res) => {
   const userId = req.user._id; // Get user from auth middleware

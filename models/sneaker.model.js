@@ -4,14 +4,21 @@ const SneakerSchema = new mongoose.Schema({
     title: String,
     description: String,
     price: Number,
-    condition: { type: String, enum: ['good', 'better', 'best'] },
-    image: String,
-    usdzFile: String,
-    size: Number,
     brand: String,
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    inBidding: { type: Boolean, default: false },
-    sold: { type: Boolean, default: false },
-}, { timestamps: true });
+    image: [String],
+    usdzFile: String,
+    size: String,
+    condition: String,
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    isApproved: {
+        type: Boolean,
+        default: false
+    },
+    // Other fields as needed
+});
 
-module.exports = mongoose.model('Sneaker', SneakerSchema);
+const Sneaker = mongoose.model('Sneaker', SneakerSchema);
+module.exports = Sneaker;

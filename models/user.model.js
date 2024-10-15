@@ -12,6 +12,7 @@ const UserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Rating',
     }],
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },  // Added role field
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);
