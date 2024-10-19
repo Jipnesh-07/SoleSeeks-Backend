@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const CommunitySchema = new mongoose.Schema({
     name: String,
     description: String,
+    image: String,
     posts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
 }, { timestamps: true });
 
