@@ -16,5 +16,5 @@ router.post("/cart", authMiddleware, UserController.addToCart);
 router.post("/cart/remove", authMiddleware, UserController.removeFromCart)
 router.get("/cart/:userId", authMiddleware, UserController.getCartItems)
 router.post("/rate", authMiddleware, UserController.rateUser);
-
+router.get("/topSellers", UserController.getTopSellers)
 module.exports = router;
