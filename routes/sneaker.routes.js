@@ -4,7 +4,7 @@ const SneakerController = require('../controllers/sneaker.controller');
 const authMiddleware = require('../middleware/auth.middleware');
 const isAdmin = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload'); // Import the upload middleware
-
+const { getTopSellers } = require('../controllers/sneaker.controller');
 // Route to create a sneaker with image and usdzFile upload
 router.post('/create', authMiddleware, upload.fields([
     { name: 'image', maxCount: 5 }, // Allow up to 5 images
@@ -21,8 +21,11 @@ router.put('/update/:sneakerId', authMiddleware, upload.fields([
 router.delete('/delete/:sneakerId', authMiddleware, SneakerController.deleteSneaker);
 router.get('/all', SneakerController.getAllSneakers);
 router.get('/all/approved', SneakerController.getAllApprovedSneakers);
+router.get('/top-sellers', getTopSellers);
 router.get('/:sneakerId', SneakerController.getSneakerById);
 router.get('/userSneaker/:userId', authMiddleware, SneakerController.getSneakersByUser);
 router.patch('/:sneakerId/approve', isAdmin, SneakerController.approveSneaker);
+
+
 
 module.exports = router;

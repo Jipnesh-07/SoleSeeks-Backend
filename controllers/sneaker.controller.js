@@ -144,3 +144,47 @@ exports.getSneakersByUser = async (req, res) => {
     }
 };
 
+
+
+// const Sneaker = require('../models/sneaker.model');
+const User = require('../models/user.model');
+
+// Fetch Top Sellers with their Listed Sneakers
+exports.getTopSellers = async (req, res) => {
+    try {
+        // Aggregate sneakers grouped by their creators (users)
+        const topSellers = await Sneaker.aggregate([
+            // Match only approved sneakers
+            { $match: { isApproved: true } },
+
+            // Group by user (createdBy) and collect sneaker details
+            {
+                $group: {
+                    _id: '$createdBy',
+                    sneakers: {
+                        $push: {
+                            _id: '$_id',
+                            title: '$title',
+                            price: '$price',
+                            brand: '$brand',
+                            image: '$image',
+                            condition: '$condition',
+                            size: '$size'
+                        }
+                    },
+                    totalListed: { $sum: 1 }, // Count total sneakers listed by each user
+                }
+            },
+
+            // Sort by total sneakers listed (descending order)
+            { $sort: { totalListed: -1 } }
+        ]);
+
+        // Populate user details for each top seller
+        const populatedTopSellers = await User.populate(topSellers, { path: '_id', select: 'name email image' });
+
+        res.status(200).json(populatedTopSellers);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
