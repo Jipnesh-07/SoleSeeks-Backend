@@ -5,23 +5,73 @@ const upload = require("../middleware/upload"); // Multer middleware for Cloudin
 const { cloudinary } = require("../config/cloudinary"); // Cloudinary config
 const Sneaker = require("../models/sneaker.model");
 
+// exports.register = async (req, res) => {
+//   const { name, email, password, role } = req.body; // Now accepting role in the request
+//   try {
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     const userRole = role === "admin" ? "admin" : "user"; // Only allow 'admin' role if specified
+//     const user = new User({
+//       name,
+//       email,
+//       password: hashedPassword,
+//       role: userRole,
+//       image: ""
+//     });
+//     await user.save();
+//     res.status(201).json({ message: "User registered" });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body; // Now accepting role in the request
   try {
+    // Hash the password before saving the user
     const hashedPassword = await bcrypt.hash(password, 10);
-    const userRole = role === "admin" ? "admin" : "user"; // Only allow 'admin' role if specified
+    
+    // Set the user role, defaulting to 'user' if no 'admin' role is specified
+    const userRole = role === "admin" ? "admin" : "user";
+
+    // Create a new user instance
     const user = new User({
       name,
       email,
       password: hashedPassword,
       role: userRole,
+      image: "", // You can set a default image or handle it later
     });
+
+    // Save the user to the database
     await user.save();
-    res.status(201).json({ message: "User registered" });
+
+    // Generate a JWT token for the user
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET // You can adjust the expiration time if needed
+    );
+
+    // Send the response with the token and user information
+    res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        role: user.role,
+        wishlist: user.wishlist,
+        cart: user.cart,
+        joinedCommunities: user.joinedCommunities,
+        ratings: user.ratings,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -34,7 +84,20 @@ exports.login = async (req, res) => {
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET
     ); // Include role in the token
-    res.json({ token });
+    res.json({ token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        password: user.password,
+        image: user.image,
+        role: user.role,
+        wishlist: user.wishlist, // Include populated fields if needed
+        cart: user.cart,
+        joinedCommunities: user.joinedCommunities,
+        ratings: user.ratings
+      },
+  });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -179,12 +242,10 @@ exports.removeFromCart = async (req, res) => {
 };
 
 exports.getCartItems = async (req, res) => {
-  const { userId } = req.params;
-
+  const userId = req.user._id;
   try {
     // Find the user by ID
     const user = await User.findById(userId).populate("cart");
-
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

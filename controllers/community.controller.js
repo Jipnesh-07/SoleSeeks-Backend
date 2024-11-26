@@ -1,7 +1,11 @@
 const User = require("../models/user.model");
 const Community = require("../models/community.model");
 const Post = require("../models/post.model");
-const upload = require('../middleware/upload'); // Assuming 'upload' is located in middleware folder
+const mongoose = require("mongoose");
+
+const upload = require("../middleware/upload"); // Multer middleware for Cloudinary
+const { cloudinary } = require("../config/cloudinary"); // Cloudinary config
+const uploadImageToCloudinary = require("../utils/uploadImage")
 
 // Join a community
 exports.joinCommunity = async (req, res) => {
@@ -65,90 +69,156 @@ exports.updateCommunity = [
   }
 ];
 
+// exports.createPost = async (req, res) => {
+//   const { content } = req.body;
+
+//   // Parse communityIds only if it exists
+//   let communityIds;
+//   try {
+//     communityIds = req.body.communityIds ? JSON.parse(req.body.communityIds) : [];
+//   } catch (err) {
+//     return res.status(400).json({ message: 'Invalid communityIds format. It must be a JSON array.' });
+//   }
+
+//   // Validate that communityIds is an array
+//   if (!Array.isArray(communityIds)) {
+//     return res.status(400).json({ message: 'communityIds must be an array' });
+//   }
+
+//   try {
+//     const posts = [];
+//     let imageUrl = null;
+
+//     // If there's an image in the request, upload to Cloudinary
+//     if (req.file) {
+//       const result = await cloudinary.uploader.upload(req.file.path);
+//       imageUrl = result.secure_url;
+//     }
+
+//     for (let communityId of communityIds) {
+//       console.log(`Processing communityId: ${communityId}`);
+
+//       // Check if the community ID is valid
+//       if (!mongoose.Types.ObjectId.isValid(communityId)) {
+//         console.log(`Invalid community ID: ${communityId}`);
+//         return res.status(400).json({ message: `Invalid community ID: ${communityId}` });
+//       }
+
+//       // Find the community
+//       const isCommunity = await Community.findById(communityId);
+//       if (!isCommunity) {
+//         console.log(`Community with ID ${communityId} doesn't exist!`);
+//         return res.status(404).json({ message: `Community with ID ${communityId} doesn't exist!` });
+//       }
+
+//       // Create the post
+//       const post = new Post({
+//         content,
+//         image: imageUrl, // Store the Cloudinary image URL
+//         community: communityId,
+//         createdBy: req.user._id,
+//       });
+
+//       await post.save();
+//       console.log(`Post created with ID: ${post._id}`);
+
+//       // Add post to the community
+//       isCommunity.posts.push(post._id);
+//       await isCommunity.save();
+
+//       // Add the post to the posts array
+//       posts.push(post);
+//     }
+
+//     console.log(`Total posts created: ${posts.length}`);
+
+//     res.status(201).json({ posts });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
 exports.createPost = async (req, res) => {
-  const { content } = req.body;
-
-  // Parse communityIds only if it exists
-  let communityIds;
-  try {
-    communityIds = req.body.communityIds ? JSON.parse(req.body.communityIds) : [];
-  } catch (err) {
-    return res.status(400).json({ message: 'Invalid communityIds format. It must be a JSON array.' });
-  }
-
-  // Validate that communityIds is an array
-  if (!Array.isArray(communityIds)) {
-    return res.status(400).json({ message: 'communityIds must be an array' });
-  }
-
-  try {
-    const posts = [];
-    let imageUrl = null;
-
-    // If there's an image in the request, upload to Cloudinary
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
-      imageUrl = result.secure_url;
+  upload.single('image')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: 'Error uploading image' });
     }
 
-    for (let communityId of communityIds) {
-      console.log(`Processing communityId: ${communityId}`);
+    let { content, image } = req.body; // Extract content from the body
+    console.log('Content:', content);
+    console.log('Image:', image);
 
-      // Check if the community ID is valid
-      if (!mongoose.Types.ObjectId.isValid(communityId)) {
-        console.log(`Invalid community ID: ${communityId}`);
-        return res.status(400).json({ message: `Invalid community ID: ${communityId}` });
+    if (!content || typeof content !== 'string') {
+      return res.status(400).json({ message: 'Content is required and must be a string.' });
+    }
+
+    let communityIds;
+    try {
+      communityIds = JSON.parse(req.body.communityIds); // Parsing as an array if needed
+    } catch (e) {
+      return res.status(400).json({ message: 'Invalid communityIds format.' });
+    }
+
+    // Upload image to Cloudinary
+    try {
+      if (req.file) {
+        image = req.file.path;
       }
 
-      // Find the community
-      const isCommunity = await Community.findById(communityId);
-      if (!isCommunity) {
-        console.log(`Community with ID ${communityId} doesn't exist!`);
-        return res.status(404).json({ message: `Community with ID ${communityId} doesn't exist!` });
-      }
-
-      // Create the post
-      const post = new Post({
+      // Now you can use the image URL and other form data to create the post
+      // Save the post data (including the image URL and communityIds) in your database
+      const newPost =  new Post({
         content,
-        image: imageUrl, // Store the Cloudinary image URL
-        community: communityId,
-        createdBy: req.user._id,
+        image,
+        communityIds
       });
 
-      await post.save();
-      console.log(`Post created with ID: ${post._id}`);
+      await newPost.save();
 
-      // Add post to the community
-      isCommunity.posts.push(post._id);
-      await isCommunity.save();
+      // Example response
+      return res.status(200).json({
+        message: 'Post created successfully!',
+      });
 
-      // Add the post to the posts array
-      posts.push(post);
+    } catch (cloudinaryError) {
+      console.error('Cloudinary upload error:', cloudinaryError);
+      return res.status(500).json({ message: 'Error uploading image to Cloudinary' });
     }
-
-    console.log(`Total posts created: ${posts.length}`);
-
-    res.status(201).json({ posts });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
-  }
+  })
 };
 
-
-
 // Leave a community
+// exports.leaveCommunity = async (req, res) => {
+//   const { communityId } = req.body;
+//   try {
+//     const user = await User.findById(req.user._id);
+//     user.joinedCommunities = user.joinedCommunities.filter(
+//       (id) => id.toString() !== communityId
+//     );
+//     await user.save();
+//     res.status(200).json({ message: "Left community" });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 exports.leaveCommunity = async (req, res) => {
-  const { communityId } = req.body;
   try {
-    const user = await User.findById(req.user._id);
-    user.joinedCommunities = user.joinedCommunities.filter(
-      (id) => id.toString() !== communityId
-    );
-    await user.save();
-    res.status(200).json({ message: "Left community" });
+      const userId = req.user._id;
+      const { communityId } = req.body;
+
+      // Remove community from joinedCommunities and add to leftCommunities
+      const user = await User.findById(userId);
+
+      const filteredList = user.joinedCommunities.filter(id => id === communityId);
+      user.joinedCommunities = filteredList;
+
+      if (!user.leftCommunities.includes(communityId)) user.leftCommunities.push(communityId);
+      await user.save();
+
+      res.status(200).json({ message: "Community left successfully" });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+      res.status(500).json({ message: err.message });
   }
 };
 
@@ -169,24 +239,57 @@ exports.getPostsByCommunity = async (req, res) => {
 // Get a user’s joined communities
 exports.getUserCommunities = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate(
-      "joinedCommunities"
-    );
+    const user = await User.findById(req.user._id).populate("joinedCommunities");
     res.status(200).json({ communities: user.joinedCommunities });
-  } catch (err) {
-    res.status500.json({ message: err.message });
-  }
-};
-
-// Get all communities
-exports.getAllCommunities = async (req, res) => {
-  try {
-    const communities = await Community.find();
-    res.status(200).json({ communities });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Get a user’s left communities
+// exports.getLeftCommunities = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user._id).populate("leftCommunities");
+//     res.status(200).json({ communities: user.leftCommunities });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+
+
+// Get a user’s left communities
+exports.getLeftCommunities = async (req, res) => {
+  try {
+      const user = await User.findById(req.user._id).populate("leftCommunities");
+
+      console.log(user); // Check the user object in the console
+
+      if (!user) {
+          return res.status(404).json({ message: "User not found" });
+      }
+
+      res.status(200).json({ communities: user.leftCommunities });
+  } catch (err) {
+      res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+// Get all communities
+exports.getAllCommunities = async (req, res) => {
+  try {
+    const communities = await Community.find().lean();
+    
+    // Exclude 'posts' from each community
+    const dataToSend = communities.map(({ posts, ...rest }) => rest);
+
+    res.status(200).json({ communities: dataToSend });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 
 // Delete a community
 exports.deleteCommunity = async (req, res) => {
@@ -206,3 +309,5 @@ exports.deleteCommunity = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+

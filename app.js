@@ -1,6 +1,8 @@
 const express = require('express');
 const http = require('http');
 const connectDB = require('./config/db');
+const cors = require("cors")
+
 const socketIO = require('./sockets/chat.socket');
 require('dotenv').config();
 
@@ -11,6 +13,7 @@ const io = socketIO(server);
 connectDB();
 
 app.use(express.json());
+app.use(cors())
 
 // Import routes
 const userRoutes = require('./routes/user.routes');
