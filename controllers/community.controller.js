@@ -69,139 +69,71 @@ exports.updateCommunity = [
   }
 ];
 
-// exports.createPost = async (req, res) => {
-//   const { content } = req.body;
-
-//   // Parse communityIds only if it exists
-//   let communityIds;
-//   try {
-//     communityIds = req.body.communityIds ? JSON.parse(req.body.communityIds) : [];
-//   } catch (err) {
-//     return res.status(400).json({ message: 'Invalid communityIds format. It must be a JSON array.' });
-//   }
-
-//   // Validate that communityIds is an array
-//   if (!Array.isArray(communityIds)) {
-//     return res.status(400).json({ message: 'communityIds must be an array' });
-//   }
-
-//   try {
-//     const posts = [];
-//     let imageUrl = null;
-
-//     // If there's an image in the request, upload to Cloudinary
-//     if (req.file) {
-//       const result = await cloudinary.uploader.upload(req.file.path);
-//       imageUrl = result.secure_url;
-//     }
-
-//     for (let communityId of communityIds) {
-//       console.log(`Processing communityId: ${communityId}`);
-
-//       // Check if the community ID is valid
-//       if (!mongoose.Types.ObjectId.isValid(communityId)) {
-//         console.log(`Invalid community ID: ${communityId}`);
-//         return res.status(400).json({ message: `Invalid community ID: ${communityId}` });
-//       }
-
-//       // Find the community
-//       const isCommunity = await Community.findById(communityId);
-//       if (!isCommunity) {
-//         console.log(`Community with ID ${communityId} doesn't exist!`);
-//         return res.status(404).json({ message: `Community with ID ${communityId} doesn't exist!` });
-//       }
-
-//       // Create the post
-//       const post = new Post({
-//         content,
-//         image: imageUrl, // Store the Cloudinary image URL
-//         community: communityId,
-//         createdBy: req.user._id,
-//       });
-
-//       await post.save();
-//       console.log(`Post created with ID: ${post._id}`);
-
-//       // Add post to the community
-//       isCommunity.posts.push(post._id);
-//       await isCommunity.save();
-
-//       // Add the post to the posts array
-//       posts.push(post);
-//     }
-
-//     console.log(`Total posts created: ${posts.length}`);
-
-//     res.status(201).json({ posts });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
 exports.createPost = async (req, res) => {
   upload.single('image')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ message: 'Error uploading image' });
     }
 
-    let { content, image } = req.body; // Extract content from the body
-    console.log('Content:', content);
-    console.log('Image:', image);
+    const { content, createdBy } = req.body;
+    let { communityIds } = req.body;
 
     if (!content || typeof content !== 'string') {
       return res.status(400).json({ message: 'Content is required and must be a string.' });
     }
 
-    let communityIds;
-    try {
-      communityIds = JSON.parse(req.body.communityIds); // Parsing as an array if needed
-    } catch (e) {
-      return res.status(400).json({ message: 'Invalid communityIds format.' });
+    if (!communityIds) {
+      return res.status(400).json({ message: 'Community IDs are required.' });
     }
 
-    // Upload image to Cloudinary
     try {
-      if (req.file) {
-        image = req.file.path;
+      // Parse communityIds
+      communityIds = JSON.parse(communityIds); // Check JSON parsing
+      communityIds = communityIds.map(id => new mongoose.Types.ObjectId(id)); // Convert to ObjectId
+      console.log('Parsed and converted communityIds:', communityIds);
+
+      // Validate community IDs
+      const communities = await Community.find({ _id: { $in: communityIds } });
+      if (communities.length !== communityIds.length) {
+        return res.status(400).json({ message: 'One or more community IDs are invalid.' });
       }
 
-      // Now you can use the image URL and other form data to create the post
-      // Save the post data (including the image URL and communityIds) in your database
-      const newPost =  new Post({
+      // Handle image upload
+      const image = req.file ? req.file.path : null;
+
+      // Save the post
+      const newPost = new Post({
         content,
         image,
-        communityIds
+        community: communityIds,
+        createdBy: new mongoose.Types.ObjectId(createdBy), // Ensure user ID is valid
       });
 
+      console.log('New Post to be saved:', newPost);
       await newPost.save();
 
-      // Example response
+      // Optional: Update communities to include this post
+      const updateResult = await Community.updateMany(
+        { _id: { $in: communityIds } },
+        { $push: { posts: newPost._id } } // Assuming communities have a posts field
+      );
+      console.log('Community update result:', updateResult);
+
       return res.status(200).json({
         message: 'Post created successfully!',
+        post: newPost,
       });
-
-    } catch (cloudinaryError) {
-      console.error('Cloudinary upload error:', cloudinaryError);
-      return res.status(500).json({ message: 'Error uploading image to Cloudinary' });
+    } catch (error) {
+      console.error('Error creating post:', error.message);
+      return res.status(500).json({ message: 'Server error while creating post.' });
     }
-  })
+  });
 };
 
-// Leave a community
-// exports.leaveCommunity = async (req, res) => {
-//   const { communityId } = req.body;
-//   try {
-//     const user = await User.findById(req.user._id);
-//     user.joinedCommunities = user.joinedCommunities.filter(
-//       (id) => id.toString() !== communityId
-//     );
-//     await user.save();
-//     res.status(200).json({ message: "Left community" });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
+
+
+
+
 exports.leaveCommunity = async (req, res) => {
   try {
       const userId = req.user._id;
