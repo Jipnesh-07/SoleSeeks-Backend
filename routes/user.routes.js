@@ -12,9 +12,10 @@ router.delete("/delete/:userId", UserController.deleteUser);
 router.post("/wishlist", authMiddleware, UserController.addToWishlist);
 router.post("/wishlist/remove", authMiddleware, UserController.removeFromWishlist)
 router.get("/wishlist/:userId", authMiddleware, UserController.getWishlistItems)
+router.get("/cart/1", authMiddleware, UserController.getCartItems)
 router.post("/cart", authMiddleware, UserController.addToCart);
 router.post("/cart/remove", authMiddleware, UserController.removeFromCart)
-router.get("/cart/:userId", authMiddleware, UserController.getCartItems)
 router.post("/rate", authMiddleware, UserController.rateUser);
 
 module.exports = router;
+

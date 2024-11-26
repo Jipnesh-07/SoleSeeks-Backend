@@ -1,11 +1,13 @@
 const express = require('express');
 const app = express();
 const connectDB = require('./config/db');
+const cors = require("cors")
 
 require('dotenv').config();
 connectDB();
 
 app.use(express.json());
+app.use(cors())
 
 // Import routes
 const userRoutes = require('./routes/user.routes');

@@ -11,6 +11,7 @@ const {
   createCommunity,
   updateCommunity,
   deleteCommunity,
+  getLeftCommunities
 } = require("../controllers/community.controller");
 
 // Middleware to ensure user is authenticated
@@ -30,6 +31,9 @@ router.get('/all', getAllCommunities);
 
 // Route to get the user's joined communities
 router.get("/user/all", authenticate, getUserCommunities);
+
+//Route ti get the user's left communities
+router.get('/user/left',authenticate,getLeftCommunities);
 
 // Route to update details of a specific community
 router.put("/update/:communityId", authenticate, updateCommunity);
