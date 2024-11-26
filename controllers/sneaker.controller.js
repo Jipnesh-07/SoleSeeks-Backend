@@ -160,19 +160,40 @@ exports.getTopSellers = async (req, res) => {
             // Group by user (createdBy) and collect sneaker details
             {
                 $group: {
-                    _id: '$createdBy',
+                    _id: '$createdBy',  // Group by createdBy (user ID)
                     sneakers: {
                         $push: {
                             _id: '$_id',
                             title: '$title',
+                            description: '$description',  // Add description
                             price: '$price',
                             brand: '$brand',
                             image: '$image',
+                            usdzFile: '$usdzFile',  // Add usdzFile
                             condition: '$condition',
-                            size: '$size'
+                            size: '$size',
+                            createdBy: '$createdBy'  // Add createdBy
                         }
                     },
                     totalListed: { $sum: 1 }, // Count total sneakers listed by each user
+                }
+            },
+
+            // Perform a $lookup to populate user details from the User collection
+            {
+                $lookup: {
+                    from: 'users',  // The name of the User collection
+                    localField: '_id',  // The field we are matching from the Sneaker's _id
+                    foreignField: '_id',  // The field we are matching in the User collection
+                    as: 'userDetails'  // Alias to store the populated data
+                }
+            },
+
+            // Flatten the result (because $lookup gives an array)
+            {
+                $unwind: {
+                    path: '$userDetails',
+                    preserveNullAndEmptyArrays: true // In case a user doesn't exist
                 }
             },
 
@@ -180,11 +201,14 @@ exports.getTopSellers = async (req, res) => {
             { $sort: { totalListed: -1 } }
         ]);
 
-        // Populate user details for each top seller
-        const populatedTopSellers = await User.populate(topSellers, { path: '_id', select: 'name email image' });
+        topSellers.map(seller => {
+            seller.sneakers.map(sneaker => sneaker.size.toString())
+        })
 
-        res.status(200).json(populatedTopSellers);
+        res.status(200).json(topSellers);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
+
