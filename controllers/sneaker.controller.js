@@ -2,16 +2,21 @@ const Sneaker = require('../models/sneaker.model');
 const { adjustPriceByCondition } = require('../utils/priceHelper');
 
 exports.createSneaker = async (req, res) => {
-    const { title, description, price, brand, image, usdzFile, size, condition } = req.body;
+    const { title, description, price, brand, size, condition } = req.body;
     try {
         const adjustedPrice = adjustPriceByCondition(price, condition);
+
+        // Upload image and usdzFile to Cloudinary
+        const imageUrls = req.files['image'] ? req.files['image'].map(file => file.path) : [];
+        const usdzFileUrl = req.files['usdzFile'] ? req.files['usdzFile'][0].path : '';
+
         const sneaker = new Sneaker({
             title,
             description,
             price: adjustedPrice,
             brand,
-            image,
-            usdzFile,
+            image: imageUrls,
+            usdzFile: usdzFileUrl,
             size,
             condition,
             createdBy: req.user._id,
@@ -23,6 +28,7 @@ exports.createSneaker = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
 
 
 exports.approveSneaker = async (req, res) => {
@@ -43,24 +49,29 @@ exports.approveSneaker = async (req, res) => {
 
 exports.updateSneaker = async (req, res) => {
     const { sneakerId } = req.params;
-    const { title, description, price, brand, image, usdzFile, size, condition } = req.body;
+    const { title, description, price, brand, size, condition } = req.body;
 
     try {
         const updatedPrice = adjustPriceByCondition(price, condition);
-        const sneaker = await Sneaker.findByIdAndUpdate(
-            sneakerId,
-            {
-                title,
-                description,
-                price: updatedPrice,
-                brand,
-                image,
-                usdzFile,
-                size,
-                condition
-            },
-            { new: true }
-        );
+
+        // Upload new image and usdzFile if provided
+        const imageUrls = req.files['image'] ? req.files['image'].map(file => file.path) : [];
+        const usdzFileUrl = req.files['usdzFile'] ? req.files['usdzFile'][0].path : '';
+
+        const updateData = {
+            title,
+            description,
+            price: updatedPrice,
+            brand,
+            size,
+            condition,
+        };
+
+        // Update image and usdzFile only if new files are provided
+        if (imageUrls.length > 0) updateData.image = imageUrls;
+        if (usdzFileUrl) updateData.usdzFile = usdzFileUrl;
+
+        const sneaker = await Sneaker.findByIdAndUpdate(sneakerId, updateData, { new: true });
 
         if (!sneaker) return res.status(404).json({ message: 'Sneaker not found' });
 
@@ -69,6 +80,7 @@ exports.updateSneaker = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
 
 exports.deleteSneaker = async (req, res) => {
     const { sneakerId } = req.params;
@@ -131,4 +143,72 @@ exports.getSneakersByUser = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+
+
+// const Sneaker = require('../models/sneaker.model');
+const User = require('../models/user.model');
+
+// Fetch Top Sellers with their Listed Sneakers
+exports.getTopSellers = async (req, res) => {
+    try {
+        // Aggregate sneakers grouped by their creators (users)
+        const topSellers = await Sneaker.aggregate([
+            // Match only approved sneakers
+            { $match: { isApproved: true } },
+
+            // Group by user (createdBy) and collect sneaker details
+            {
+                $group: {
+                    _id: '$createdBy',  // Group by createdBy (user ID)
+                    sneakers: {
+                        $push: {
+                            _id: '$_id',
+                            title: '$title',
+                            description: '$description',  // Add description
+                            price: '$price',
+                            brand: '$brand',
+                            image: '$image',
+                            usdzFile: '$usdzFile',  // Add usdzFile
+                            condition: '$condition',
+                            size: '$size',
+                            createdBy: '$createdBy'  // Add createdBy
+                        }
+                    },
+                    totalListed: { $sum: 1 }, // Count total sneakers listed by each user
+                }
+            },
+
+            // Perform a $lookup to populate user details from the User collection
+            {
+                $lookup: {
+                    from: 'users',  // The name of the User collection
+                    localField: '_id',  // The field we are matching from the Sneaker's _id
+                    foreignField: '_id',  // The field we are matching in the User collection
+                    as: 'userDetails'  // Alias to store the populated data
+                }
+            },
+
+            // Flatten the result (because $lookup gives an array)
+            {
+                $unwind: {
+                    path: '$userDetails',
+                    preserveNullAndEmptyArrays: true // In case a user doesn't exist
+                }
+            },
+
+            // Sort by total sneakers listed (descending order)
+            { $sort: { totalListed: -1 } }
+        ]);
+
+        topSellers.map(seller => {
+            seller.sneakers.map(sneaker => sneaker.size.toString())
+        })
+
+        res.status(200).json(topSellers);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 

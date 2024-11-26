@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const upload = require("../middleware/upload"); // Multer middleware for Cloudinary
 const { cloudinary } = require("../config/cloudinary"); // Cloudinary config
+const Sneaker = require("../models/sneaker.model");
 
 // exports.register = async (req, res) => {
 //   const { name, email, password, role } = req.body; // Now accepting role in the request
@@ -329,6 +330,40 @@ exports.rateUser = async (req, res) => {
       .status(200)
       .json({ message: "User rated successfully", ratings: user.ratings });
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// const User = require("../models/user.model");
+// const Sneaker = require("../models/sneaker.model");
+
+exports.getTopSellers = async (req, res) => {
+  try {
+    // Fetch all users and their listed sneakers
+    const users = await User.find()
+      .populate("cart")
+      .populate("wishlist")
+      .populate("joinedCommunities");
+
+    // For each user, get the count of their listed sneakers
+    const usersWithListings = await Promise.all(users.map(async (user) => {
+      const listedSneakers = await Sneaker.find({ createdBy: user._id });
+      return {
+        ...user.toObject(),
+        totalListings: listedSneakers.length,
+        listedSneakers,
+      };
+    }));
+
+    // Filter users based on the number of listings
+    const topSellers = usersWithListings.filter(user => user.totalListings > 0);
+
+    // Sort the top sellers by total listings
+    topSellers.sort((a, b) => b.totalListings - a.totalListings);
+
+    res.status(200).json({ topSellers });
+  } catch (err) {
+    console.error(err); // Log the error for debugging
     res.status(500).json({ message: err.message });
   }
 };
