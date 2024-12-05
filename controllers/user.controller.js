@@ -5,25 +5,6 @@ const upload = require("../middleware/upload"); // Multer middleware for Cloudin
 const { cloudinary } = require("../config/cloudinary"); // Cloudinary config
 const Sneaker = require("../models/sneaker.model");
 
-// exports.register = async (req, res) => {
-//   const { name, email, password, role } = req.body; // Now accepting role in the request
-//   try {
-//     const hashedPassword = await bcrypt.hash(password, 10);
-//     const userRole = role === "admin" ? "admin" : "user"; // Only allow 'admin' role if specified
-//     const user = new User({
-//       name,
-//       email,
-//       password: hashedPassword,
-//       role: userRole,
-//       image: ""
-//     });
-//     await user.save();
-//     res.status(201).json({ message: "User registered" });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body; // Now accepting role in the request
   try {
