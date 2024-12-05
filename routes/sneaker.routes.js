@@ -23,7 +23,7 @@ router.get('/all', SneakerController.getAllSneakers);
 router.get('/all/approved', SneakerController.getAllApprovedSneakers);
 router.get('/top-sellers', getTopSellers);
 router.get('/:sneakerId', SneakerController.getSneakerById);
-router.get('/userSneaker/:userId', authMiddleware, SneakerController.getSneakersByUser);
+router.get('/userSneaker/get', authMiddleware, SneakerController.getSneakersByUser);
 router.patch('/:sneakerId/approve', isAdmin, SneakerController.approveSneaker);
 
 
