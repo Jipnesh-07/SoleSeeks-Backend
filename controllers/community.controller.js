@@ -134,25 +134,68 @@ exports.createPost = async (req, res) => {
 
 
 
+// exports.leaveCommunity = async (req, res) => {
+//   try {
+//       const userId = req.user._id;
+//       const { communityId } = req.body;
+
+//       // Remove community from joinedCommunities and add to leftCommunities
+//       const user = await User.findById(userId);
+
+//       const filteredList = user.joinedCommunities.filter(id => id === communityId);
+//       user.joinedCommunities = filteredList;
+
+//       if (!user.leftCommunities.includes(communityId)) user.leftCommunities.push(communityId);
+//       await user.save();
+
+//       res.status(200).json({ message: "Community left successfully" });
+//   } catch (err) {
+//       res.status(500).json({ message: err.message });
+//   }
+// };
 exports.leaveCommunity = async (req, res) => {
   try {
-      const userId = req.user._id;
-      const { communityId } = req.body;
+    const userId = req.user._id;
+    const { communityId } = req.body;
 
-      // Remove community from joinedCommunities and add to leftCommunities
-      const user = await User.findById(userId);
+    // Check if communityId is provided
+    if (!communityId) {
+      return res.status(400).json({ message: "Community ID is required" });
+    }
 
-      const filteredList = user.joinedCommunities.filter(id => id === communityId);
-      user.joinedCommunities = filteredList;
+    // Find the user by ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-      if (!user.leftCommunities.includes(communityId)) user.leftCommunities.push(communityId);
-      await user.save();
+    // Check if the user is a member of the community
+    if (!user.joinedCommunities.includes(communityId)) {
+      return res.status(400).json({ message: "User is not a member of this community" });
+    }
 
-      res.status(200).json({ message: "Community left successfully" });
+    // Remove the communityId from the joinedCommunities array
+    user.joinedCommunities = user.joinedCommunities.filter(id => {
+      return id.toString() !== communityId.toString(); // Make sure to convert both to strings for accurate comparison
+    });
+
+    // If the communityId isn't already in leftCommunities, add it
+    if (!user.leftCommunities.includes(communityId)) {
+      user.leftCommunities.push(communityId);
+    }
+
+    // Save the updated user document
+    await user.save();
+
+    // Optionally: Update the community to reflect the user leaving (e.g., decrement member count if necessary)
+    // await Community.findByIdAndUpdate(communityId, { $pull: { members: userId } });
+
+    res.status(200).json({ message: "Community left successfully" });
   } catch (err) {
-      res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
+
 
 // Get posts by community
 exports.getPostsByCommunity = async (req, res) => {
