@@ -139,14 +139,55 @@ exports.updateUser = (req, res) => {
   });
 };
 
+// exports.deleteUser = async (req, res) => {
+//   const { userId } = req.params;
+
+//   try {
+//     const user = await User.findByIdAndDelete(userId);
+//     if (!user) return res.status(404).json({ message: "User not found!" });
+
+//     res.status(200).json({ message: "User deleted successfully!" });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
+// /
+// const User = require('../models/User'); // User model
+const Community = require('../models/community.model'); // Community model
+// const Sneaker = require('../models/Sneaker'); // Sneaker model
+
 exports.deleteUser = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const user = await User.findByIdAndDelete(userId);
+    // Find the user to clean up related data
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found!" });
 
-    res.status(200).json({ message: "User deleted successfully!" });
+    // Remove user ID from joined and left communities
+    await Community.updateMany(
+      { _id: { $in: [...user.joinedCommunities, ...user.leftCommunities] } },
+      { $pull: { members: userId } } // Assuming `members` tracks user IDs in communities
+    );
+
+    // Clean up sneakers created by the user
+    await Sneaker.deleteMany({ createdBy: userId });
+
+    // Handle the wishlist and cart cleanup
+    await Sneaker.updateMany(
+      { _id: { $in: user.wishlist } },
+      { $pull: { interestedUsers: userId } } // Adjust field names if necessary
+    );
+
+    await Sneaker.updateMany(
+      { _id: { $in: user.cart } },
+      { $pull: { cartedBy: userId } } // Adjust field names if necessary
+    );
+
+    // Finally, delete the user
+    await user.deleteOne();
+
+    res.status(200).json({ message: "User and all related data deleted successfully!" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

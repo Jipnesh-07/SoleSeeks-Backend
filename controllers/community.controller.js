@@ -106,7 +106,7 @@ exports.createPost = async (req, res) => {
         content,
         image,
         community: communityIds,
-        createdBy: new mongoose.Types.ObjectId(createdBy), // Ensure user ID is valid
+        createdBy: req.user._id, // Ensure user ID is valid
       });
 
       console.log('New Post to be saved:', newPost);
@@ -203,7 +203,7 @@ exports.getPostsByCommunity = async (req, res) => {
   try {
     const posts = await Post.find({ community: communityId }).populate(
       "createdBy",
-      "username"
+      "name"
     );
     res.status(200).json({ posts });
   } catch (err) {
