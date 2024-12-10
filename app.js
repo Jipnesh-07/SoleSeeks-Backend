@@ -11,9 +11,15 @@ const server = http.createServer(app);
 const io = socketIO(server);
 
 connectDB();
-
-app.use(express.json());
-app.use(cors())
+app
+  .use(express.json())
+  .use(express.urlencoded({ extended: true }))
+  .use(
+    cors({
+      origin: ["http://localhost:5173", "http://localhost:5174"],
+      credentials: true,
+    })
+  )
 
 // Import routes
 const userRoutes = require('./routes/user.routes');

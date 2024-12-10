@@ -152,9 +152,8 @@ exports.updateUser = (req, res) => {
 //   }
 // };
 // /
-// const User = require('../models/User'); // User model
+
 const Community = require('../models/community.model'); // Community model
-// const Sneaker = require('../models/Sneaker'); // Sneaker model
 
 exports.deleteUser = async (req, res) => {
   const { userId } = req.params;
