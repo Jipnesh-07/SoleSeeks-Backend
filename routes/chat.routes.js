@@ -50,6 +50,41 @@ router.post('/message', authMiddleware, async (req, res) => {
   }
 });
 
+
+// Post message or create a new chat
+router.post('/new-chat', authMiddleware, async (req, res) => {
+  const { participant } = req.body;  // participants should be an array with at least two users
+  const senderId = req.user._id;  // Get sender's ID from JWT
+
+  if (!participant) {
+    return res.status(400).json({ error: 'Invalid request data' });
+  }
+
+  try {
+    // Check if a chat already exists between the sender and participants
+    let chat = await Chat.findOne({
+      participants: { $all: [senderId, participant] },
+    });
+
+    if (!chat) {
+      // If the chat doesn't exist, create a new chat
+      chat = new Chat({
+        participants: [senderId, participant],
+        messages: [
+        ],
+      });
+    } 
+
+    // Save the chat to the database
+    await chat.save();
+
+    res.status(200).json({ success: true, message: 'Chats fetched successfully', roomName: chat._id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save message' });
+  }
+});
+
 // Get recent chats
 router.get('/recent/', authMiddleware, async (req, res) => {
   try {
