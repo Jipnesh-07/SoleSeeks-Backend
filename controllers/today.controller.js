@@ -51,11 +51,44 @@ exports.createToday = async (req, res) => {
 
 
 
-// Get All Today's Sneakers
+// // Get All Today's Sneakers
+// exports.getAllToday = async (req, res) => {
+//     try {
+//         const todays = await Today.find().populate('sneaker'); // Populates sneaker details
+//         res.status(200).json(todays);
+//     } catch (error) {
+//         res.status(500).json({ error: error.message });
+//     }
+// };
+
 exports.getAllToday = async (req, res) => {
     try {
-        const todays = await Today.find().populate('sneaker'); // Populates sneaker details
-        res.status(200).json(todays);
+        const todays = await Today.find()
+            .populate({
+                path: 'sneaker', // Populate sneaker details
+                populate: {
+                    path: 'createdBy', // Populate createdBy details
+                    select: '_id name'  // Fetch both id and name
+                }
+            });
+
+        // Format the response to include the createdBy details (id and name)
+        const formattedTodays = todays.map(today => ({
+            ...today.toObject(),
+            sneaker: today.sneaker
+                ? {
+                      ...today.sneaker.toObject(),
+                      createdBy: today.sneaker.createdBy
+                          ? {
+                                id: today.sneaker.createdBy._id,  // Include id
+                                name: today.sneaker.createdBy.name // Include name
+                            }
+                          : null // Handle cases where createdBy is missing
+                  }
+                : null // Handle cases where sneaker is missing
+        }));
+
+        res.status(200).json(formattedTodays);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
