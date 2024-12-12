@@ -203,13 +203,14 @@ exports.getPostsByCommunity = async (req, res) => {
   try {
     const posts = await Post.find({ community: communityId }).populate(
       "createdBy",
-      "name"
+      "name image"
     );
     res.status(200).json({ posts });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 // Get a user’s joined communities
 exports.getUserCommunities = async (req, res) => {
