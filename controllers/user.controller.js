@@ -1,13 +1,20 @@
 const User = require("../models/user.model");
+const Community = require('../models/community.model'); // Community model
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const upload = require("../middleware/upload"); // Multer middleware for Cloudinary
 const { cloudinary } = require("../config/cloudinary"); // Cloudinary config
 const Sneaker = require("../models/sneaker.model");
+const sendEmail = require("../utils/sendEmail")
+const generateString = require("../utils/randomString");
+const TempUserModel = require("../models/temp.user.model");
+
 
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body; // Now accepting role in the request
   try {
+    let user = await User.findOne({email});
+    if (user) return res.status(400).json({ message: "User already existed!"});
     // Hash the password before saving the user
     const hashedPassword = await bcrypt.hash(password, 10);
     
@@ -15,7 +22,7 @@ exports.register = async (req, res) => {
     const userRole = role === "admin" ? "admin" : "user";
 
     // Create a new user instance
-    const user = new User({
+    user = new User({
       name,
       email,
       password: hashedPassword,
@@ -31,6 +38,15 @@ exports.register = async (req, res) => {
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET // You can adjust the expiration time if needed
     );
+
+    const link = `${process.env.SERVER_URL}/api/users/verify/${user._id}`;
+
+    const data = {
+      to: user.email,
+      subject: "Verify your account",
+      body: link
+    }
+    sendEmail(data)
 
     // Send the response with the token and user information
     res.status(201).json({
@@ -54,35 +70,138 @@ exports.register = async (req, res) => {
 };
 
 
+exports.verifyUser = async (req, res) => {
+  const { id } = req.params;
+  let user = await User.findById(id);
+  if (!user) return res.status(404).json({ message: "User not found!"});
+
+  if (user.isVerified) {
+    return res.status(400).json({ message: "User already verified"});
+  }
+
+  user.isVerified = true
+  await user.save();
+  res.status(200).json({ message: "User verified"})
+}
+
+
+exports.sendVerification = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const link = `${process.env.SERVER_URL}/api/users/verify/${user._id}`;
+
+    const data = {
+      to: user.email,
+      subject: "Verify your account",
+      body: link
+    }
+
+    sendEmail(data)
+
+    res.status(200).json({ message: "Verification email sent" });
+  } catch (err) {
+    console.error("Error during email verification:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
+    // Find the user by email
     const user = await User.findOne({ email });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
+
+    // Check if the email is verified
+    if (!user.verificationToken) {
+      return res.status(403).json({ message: "Email not verified. Please check your email to verify your account." });
+    }
+
+    // Validate the password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Generate a JWT token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET
-    ); // Include role in the token
-    res.json({ token,
+    );
+
+    // Respond with user data and token
+    res.json({
+      token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        password: user.password,
         image: user.image,
         role: user.role,
-        wishlist: user.wishlist, // Include populated fields if needed
+        wishlist: user.wishlist,
         cart: user.cart,
         joinedCommunities: user.joinedCommunities,
-        ratings: user.ratings
+        ratings: user.ratings,
       },
-  });
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.forgotPassword1 = async (req, res) => {
+  const { email } = req.body;
+  try {
+    let user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found"});
+
+    const code = generateString(5);
+    await TempUserModel.create({
+      userId: user._id,
+      code,
+    })
+
+    const data = {
+      to: user.email,
+      subject: "Verify your account",
+      body: `Enter this code in the app to continue the process:=  ${code}`
+    }
+
+    sendEmail(data)
+    return res.status(200).json({ message: "Verification code sent to your email" });
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+exports.forgotPassword2 = async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found"});
+
+    const tempUser = await TempUserModel.findOne({ userId: user._id });
+    if (!tempUser) return res.status(500).json({ message: "Something went wrong. Try again"});
+
+    if (code !== tempUser.code) return res.status(400).json({ message: "Entered wrong code"});
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword
+
+    await user.save();
+    await tempUser.deleteOne();
+
+    return res.status(200).json({message: "Password changed successfully"});
+
+  } catch (error) {
+    res.status(500);
+  }
+}
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -138,22 +257,6 @@ exports.updateUser = (req, res) => {
     }
   });
 };
-
-// exports.deleteUser = async (req, res) => {
-//   const { userId } = req.params;
-
-//   try {
-//     const user = await User.findByIdAndDelete(userId);
-//     if (!user) return res.status(404).json({ message: "User not found!" });
-
-//     res.status(200).json({ message: "User deleted successfully!" });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-// /
-
-const Community = require('../models/community.model'); // Community model
 
 exports.deleteUser = async (req, res) => {
   const { userId } = req.params;
@@ -354,9 +457,6 @@ exports.rateUser = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// const User = require("../models/user.model");
-// const Sneaker = require("../models/sneaker.model");
 
 exports.getTopSellers = async (req, res) => {
   try {
