@@ -118,7 +118,7 @@ exports.login = async (req, res) => {
     }
 
     // Check if the email is verified
-    if (!user.verificationToken) {
+    if (!user.isVerified) {
       return res.status(403).json({ message: "Email not verified. Please check your email to verify your account." });
     }
 
