@@ -93,6 +93,7 @@ router.get('/recent/', authMiddleware, async (req, res) => {
       .sort({ updatedAt: -1 });
     res.status(200).json(chats);
   } catch (err) {
+    console.log(err)
     res.status(500).json({ error: 'Failed to fetch recent chats' });
   }
 });

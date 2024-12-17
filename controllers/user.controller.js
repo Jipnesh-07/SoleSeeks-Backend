@@ -1,5 +1,6 @@
 const User = require("../models/user.model");
 const Community = require('../models/community.model'); // Community model
+const Chat = require("../models/chat.model")
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const upload = require("../middleware/upload"); // Multer middleware for Cloudinary
@@ -117,11 +118,6 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Check if the email is verified
-    if (!user.isVerified) {
-      return res.status(403).json({ message: "Email not verified. Please check your email to verify your account." });
-    }
-
     // Validate the password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
@@ -147,6 +143,7 @@ exports.login = async (req, res) => {
         cart: user.cart,
         joinedCommunities: user.joinedCommunities,
         ratings: user.ratings,
+        isVerified: user.isVerified
       },
     });
   } catch (err) {
@@ -285,6 +282,8 @@ exports.deleteUser = async (req, res) => {
       { _id: { $in: user.cart } },
       { $pull: { cartedBy: userId } } // Adjust field names if necessary
     );
+
+    await Chat.deleteMany({ participants: userId });
 
     // Finally, delete the user
     await user.deleteOne();
