@@ -1,24 +1,23 @@
 const User = require("../models/user.model");
-const Community = require('../models/community.model'); // Community model
-const Chat = require("../models/chat.model")
+const Community = require("../models/community.model"); // Community model
+const Chat = require("../models/chat.model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const upload = require("../middleware/upload"); // Multer middleware for Cloudinary
 const { cloudinary } = require("../config/cloudinary"); // Cloudinary config
 const Sneaker = require("../models/sneaker.model");
-const sendEmail = require("../utils/sendEmail")
+const sendEmail = require("../utils/sendEmail");
 const generateString = require("../utils/randomString");
 const TempUserModel = require("../models/temp.user.model");
-
 
 exports.register = async (req, res) => {
   const { name, email, password, role } = req.body; // Now accepting role in the request
   try {
-    let user = await User.findOne({email});
-    if (user) return res.status(400).json({ message: "User already existed!"});
+    let user = await User.findOne({ email });
+    if (user) return res.status(400).json({ message: "User already existed!" });
     // Hash the password before saving the user
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Set the user role, defaulting to 'user' if no 'admin' role is specified
     const userRole = role === "admin" ? "admin" : "user";
 
@@ -45,9 +44,9 @@ exports.register = async (req, res) => {
     const data = {
       to: user.email,
       subject: "Verify your account",
-      body: link
-    }
-    sendEmail(data)
+      body: link,
+    };
+    sendEmail(data);
 
     // Send the response with the token and user information
     res.status(201).json({
@@ -70,21 +69,19 @@ exports.register = async (req, res) => {
   }
 };
 
-
 exports.verifyUser = async (req, res) => {
   const { id } = req.params;
   let user = await User.findById(id);
-  if (!user) return res.status(404).json({ message: "User not found!"});
+  if (!user) return res.status(404).json({ message: "User not found!" });
 
   if (user.isVerified) {
-    return res.status(400).json({ message: "User already verified"});
+    return res.status(400).json({ message: "User already verified" });
   }
 
-  user.isVerified = true
+  user.isVerified = true;
   await user.save();
-  res.status(200).json({ message: "User verified"})
-}
-
+  res.status(200).json({ message: "User verified" });
+};
 
 exports.sendVerification = async (req, res) => {
   const { email } = req.body;
@@ -97,10 +94,10 @@ exports.sendVerification = async (req, res) => {
     const data = {
       to: user.email,
       subject: "Verify your account",
-      body: link
-    }
+      body: link,
+    };
 
-    sendEmail(data)
+    sendEmail(data);
 
     res.status(200).json({ message: "Verification email sent" });
   } catch (err) {
@@ -143,7 +140,7 @@ exports.login = async (req, res) => {
         cart: user.cart,
         joinedCommunities: user.joinedCommunities,
         ratings: user.ratings,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
       },
     });
   } catch (err) {
@@ -151,32 +148,88 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.guestLogin = async (req, res) => {
+  const email = "guest@sneakult.com";
+  const password = "Abc@123#";
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Something went wrong. Please sign in." });
+    }
+
+    const isPasswordValid = bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        role: user.role,
+        wishlist: user.wishlist,
+        cart: user.cart,
+        joinedCommunities: user.joinedCommunities,
+        ratings: user.ratings,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.userVerificationInfo = async (req, res) => {
+  try {
+    const user = req.user;
+    res.status(200).json({
+      role: user.role,
+      isVerified: user.isVerified,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
 exports.forgotPassword1 = async (req, res) => {
   const { email } = req.body;
   try {
     let user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found"});
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     const code = generateString(5);
     await TempUserModel.create({
       userId: user._id,
       code,
-    })
+    });
 
     const tempUser = await TempUserModel.findOne({ userId: user._id });
 
     const data = {
       to: user.email,
       subject: "Verify your account",
-      body: `Enter this code in the app to continue the process:=  ${tempUser.code}`
-    }
+      body: `Enter this code in the app to continue the process:=  ${tempUser.code}`,
+    };
 
-    sendEmail(data)
-    return res.status(200).json({ message: "Verification code sent to your email" });
+    sendEmail(data);
+    return res
+      .status(200)
+      .json({ message: "Verification code sent to your email" });
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
-}
+};
 
 // exports.forgotPassword2 = async (req, res) => {
 //   const { email, code, newPassword } = req.body;
@@ -213,7 +266,9 @@ exports.forgotPassword2 = async (req, res) => {
 
     const tempUser = await TempUserModel.findOne({ userId: user._id });
     if (!tempUser) {
-      return res.status(500).json({ message: "Something went wrong. Try again" });
+      return res
+        .status(500)
+        .json({ message: "Something went wrong. Try again" });
     }
 
     // Debugging: Log the codes being compared
@@ -232,13 +287,11 @@ exports.forgotPassword2 = async (req, res) => {
     await tempUser.deleteOne();
 
     return res.status(200).json({ message: "Password changed successfully" });
-
   } catch (error) {
     console.error("Error in forgotPassword2:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -328,7 +381,9 @@ exports.deleteUser = async (req, res) => {
     // Finally, delete the user
     await user.deleteOne();
 
-    res.status(200).json({ message: "User and all related data deleted successfully!" });
+    res
+      .status(200)
+      .json({ message: "User and all related data deleted successfully!" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -440,12 +495,10 @@ exports.removeFromWishlist = async (req, res) => {
     );
     await user.save();
 
-    res
-      .status(200)
-      .json({
-        message: "Sneaker removed from wishlist",
-        wishlist: user.wishlist,
-      });
+    res.status(200).json({
+      message: "Sneaker removed from wishlist",
+      wishlist: user.wishlist,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -506,17 +559,21 @@ exports.getTopSellers = async (req, res) => {
       .populate("joinedCommunities");
 
     // For each user, get the count of their listed sneakers
-    const usersWithListings = await Promise.all(users.map(async (user) => {
-      const listedSneakers = await Sneaker.find({ createdBy: user._id });
-      return {
-        ...user.toObject(),
-        totalListings: listedSneakers.length,
-        listedSneakers,
-      };
-    }));
+    const usersWithListings = await Promise.all(
+      users.map(async (user) => {
+        const listedSneakers = await Sneaker.find({ createdBy: user._id });
+        return {
+          ...user.toObject(),
+          totalListings: listedSneakers.length,
+          listedSneakers,
+        };
+      })
+    );
 
     // Filter users based on the number of listings
-    const topSellers = usersWithListings.filter(user => user.totalListings > 0);
+    const topSellers = usersWithListings.filter(
+      (user) => user.totalListings > 0
+    );
 
     // Sort the top sellers by total listings
     topSellers.sort((a, b) => b.totalListings - a.totalListings);
@@ -528,30 +585,30 @@ exports.getTopSellers = async (req, res) => {
   }
 };
 
-
 // Change Password
 exports.changePassword = async (req, res) => {
   const { userId } = req.params; // Get userId from params
   const { oldPassword, newPassword } = req.body;
 
   try {
-      // Find the user by ID
-      const user = await User.findById(userId);
-      if (!user) return res.status(404).json({ message: 'User not found' });
+    // Find the user by ID
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-      // Compare old password with the current password
-      const isMatch = await bcrypt.compare(oldPassword, user.password);
-      if (!isMatch) return res.status(400).json({ message: 'Incorrect old password' });
+    // Compare old password with the current password
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch)
+      return res.status(400).json({ message: "Incorrect old password" });
 
-      // Hash the new password
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(newPassword, salt);
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
 
-      // Save the updated user
-      await user.save();
+    // Save the updated user
+    await user.save();
 
-      res.json({ message: 'Password updated successfully' });
+    res.json({ message: "Password updated successfully" });
   } catch (err) {
-      res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };

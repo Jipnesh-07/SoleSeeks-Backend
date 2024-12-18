@@ -5,11 +5,14 @@ const authMiddleware = require("../middleware/auth.middleware");
 
 router.post("/login", UserController.login);
 router.post("/register", UserController.register);
+router.get("/userinfo", authMiddleware, UserController.userVerificationInfo)
 router.get("/verify/:id", UserController.verifyUser);
 router.post("/send-verification", UserController.sendVerification);
 router.put("/:userId/changepassword", UserController.changePassword);
 router.post("/forgot/1", UserController.forgotPassword1)
-router.post("/forgot/2", UserController.forgotPassword2)
+router.post("/forgot/2", UserController.forgotPassword2);
+
+router.get("/guest/login", UserController.guestLogin);
 
 router.get("/all", UserController.getAllUsers)
 router.get("/:userId", UserController.getUser);

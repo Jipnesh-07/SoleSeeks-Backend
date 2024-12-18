@@ -13,7 +13,7 @@ const UserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Rating',
     }],
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    role: { type: String, enum: ['user', 'admin', 'guest'], default: 'user' },
     isVerified: { type: Boolean, default: false }, // Email verification status
     resetPasswordToken: { type: String },          // Token for password reset
     resetPasswordExpires: { type: Date },          // Expiry for reset token
