@@ -163,10 +163,12 @@ exports.forgotPassword1 = async (req, res) => {
       code,
     })
 
+    const tempUser = await TempUserModel.findOne({ userId: user._id });
+
     const data = {
       to: user.email,
       subject: "Verify your account",
-      body: `Enter this code in the app to continue the process:=  ${code}`
+      body: `Enter this code in the app to continue the process:=  ${tempUser.code}`
     }
 
     sendEmail(data)
@@ -176,29 +178,67 @@ exports.forgotPassword1 = async (req, res) => {
   }
 }
 
+// exports.forgotPassword2 = async (req, res) => {
+//   const { email, code, newPassword } = req.body;
+//   try {
+//     const user = await User.findOne({ email });
+//     if (!user) return res.status(404).json({ message: "User not found"});
+
+//     const tempUser = await TempUserModel.findOne({ userId: user._id });
+//     if (!tempUser) return res.status(500).json({ message: "Something went wrong. Try again"});
+
+//     if (code !== tempUser.code) return res.status(400).json({ message: "Entered wrong code"});
+
+//     const hashedPassword = await bcrypt.hash(newPassword, 10);
+//     user.password = hashedPassword
+
+//     await user.save();
+//     await tempUser.deleteOne();
+
+//     return res.status(200).json({message: "Password changed successfully"});
+
+//   } catch (error) {
+//     res.status(500);
+//   }
+// }
+
 exports.forgotPassword2 = async (req, res) => {
   const { email, code, newPassword } = req.body;
+
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found"});
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const tempUser = await TempUserModel.findOne({ userId: user._id });
-    if (!tempUser) return res.status(500).json({ message: "Something went wrong. Try again"});
+    if (!tempUser) {
+      return res.status(500).json({ message: "Something went wrong. Try again" });
+    }
 
-    if (code !== tempUser.code) return res.status(400).json({ message: "Entered wrong code"});
+    // Debugging: Log the codes being compared
+    console.log(tempUser);
 
+    // Ensure type and value matching
+    if (String(code) !== String(tempUser.code)) {
+      return res.status(400).json({ message: "Entered wrong code" });
+    }
+
+    // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword
+    user.password = hashedPassword;
 
     await user.save();
     await tempUser.deleteOne();
 
-    return res.status(200).json({message: "Password changed successfully"});
+    return res.status(200).json({ message: "Password changed successfully" });
 
   } catch (error) {
-    res.status(500);
+    console.error("Error in forgotPassword2:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
-}
+};
+
 
 exports.getAllUsers = async (req, res) => {
   try {
