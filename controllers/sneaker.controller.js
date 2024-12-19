@@ -33,12 +33,13 @@ exports.createSneaker = async (req, res) => {
 
 exports.approveSneaker = async (req, res) => {
     const { sneakerId } = req.params;
+    const { isApprovedStatus } = req.body;
 
     try {
         const sneaker = await Sneaker.findById(sneakerId);
         if (!sneaker) return res.status(404).json({ message: 'Sneaker not found' });
 
-        sneaker.isApproved = true; // Admin approves the sneaker
+        sneaker.isApproved = isApprovedStatus; // Admin approves the sneaker
         await sneaker.save();
 
         res.json({ message: 'Sneaker approved successfully', sneaker });
