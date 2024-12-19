@@ -60,6 +60,10 @@ router.post('/new-chat', authMiddleware, async (req, res) => {
     return res.status(400).json({ error: 'Invalid request data' });
   }
 
+  if (participant === senderId) {
+    return;
+  }
+
   try {
     // Check if a chat already exists between the sender and participants
     let chat = await Chat.findOne({
@@ -70,8 +74,7 @@ router.post('/new-chat', authMiddleware, async (req, res) => {
       // If the chat doesn't exist, create a new chat
       chat = new Chat({
         participants: [senderId, participant],
-        messages: [
-        ],
+        messages: [],
       });
     } 
 
