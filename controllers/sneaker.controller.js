@@ -1,10 +1,9 @@
 const Sneaker = require('../models/sneaker.model');
-const { adjustPriceByCondition } = require('../utils/priceHelper');
 
 exports.createSneaker = async (req, res) => {
     const { title, description, price, brand, size, condition } = req.body;
     try {
-        const adjustedPrice = adjustPriceByCondition(price, condition);
+       
 
         // Upload image and usdzFile to Cloudinary
         const imageUrls = req.files['image'] ? req.files['image'].map(file => file.path) : [];
@@ -13,7 +12,7 @@ exports.createSneaker = async (req, res) => {
         const sneaker = new Sneaker({
             title,
             description,
-            price: adjustedPrice,
+            price,
             brand,
             image: imageUrls,
             usdzFile: usdzFileUrl,
