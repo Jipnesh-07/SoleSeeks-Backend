@@ -16,7 +16,7 @@ app
   .use(express.urlencoded({ extended: true }))
   .use(
     cors({
-      origin: ["http://localhost:5173", "http://localhost:5174", "https://sole-seeks-dashboard.vercel.app/"],
+      origin: ["http://localhost:5173", "http://localhost:5174", "https://sole-seeks-dashboard.vercel.app"],
       credentials: true,
     })
   )
