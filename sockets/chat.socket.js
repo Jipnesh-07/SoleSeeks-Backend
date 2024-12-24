@@ -27,7 +27,7 @@ module.exports = (server) => {
     socket.on("message", ({ message, room, sender }) => {
       if (room) {
         io.to(room).emit("receive-message", {
-          sender: sender,
+          sender: socket.id,
           message,
           timestamp: new Date(),
         });
