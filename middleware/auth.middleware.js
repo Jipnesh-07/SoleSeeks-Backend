@@ -20,4 +20,11 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
+exports.preventBlockedUsers = (req, res, next) => {
+  if (req.user.isBlocked) {
+    return res.status(403).json({ message: "Your account has been blocked. Contact support." });
+  }
+  next();
+};
+
 module.exports = authMiddleware;

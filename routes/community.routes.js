@@ -11,7 +11,8 @@ const {
   createCommunity,
   updateCommunity,
   deleteCommunity,
-  getLeftCommunities
+  getLeftCommunities,
+  flagPost
 } = require("../controllers/community.controller");
 
 // Middleware to ensure user is authenticated
@@ -46,5 +47,7 @@ router.post("/posts/create", authenticate, createPost);
 
 // Route to get all posts for a specific community
 router.get("/posts/:communityId", getPostsByCommunity);
+
+router.post("/posts/:postId/flag", authenticate, flagPost);
 
 module.exports = router;

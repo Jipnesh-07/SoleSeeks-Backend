@@ -286,4 +286,61 @@ exports.deleteCommunity = async (req, res) => {
   }
 };
 
+exports.flagPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { flagType } = req.body;
 
+    const validFlags = [
+      "bullyingOrUnwantedContact",
+      "violenceHateOrExploitation",
+      "sellingOrPromotingRestrictedItems",
+      "nudityOrSexualActivity",
+      "scamFraudOrSpam",
+      "falseInformation",
+    ];
+
+    if (!validFlags.includes(flagType)) {
+      return res.status(400).json({ message: "Invalid flag reason" });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found." });
+    }
+
+    // Increment the flag count
+    post.flags[flagType] = (post.flags[flagType] || 0) + 1;
+    post.flags.totalFlags += 1;
+
+    await post.save();
+
+    // Fetch the user associated with the post
+    const user = await User.findById(post.createdBy);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Send a warning if the total flags exceed 5
+    if (post.flags.totalFlags >= 5) {
+      user.warnings = (user.warnings || 0) + 1;
+
+      // Notify the user about the warning
+      console.log(
+        `Warning sent to user ${user.name}: Abusive behavior in the community.`
+      );
+
+      // // If the warning count exceeds 30, the admin can block the user
+      // if (user.warnings >= 30) {
+      //   user.isBlocked = true;
+      //   console.log(`User ${user.name} has been blocked due to repeated warnings.`);
+      // }
+
+      await user.save();
+    }
+
+    res.status(200).json({ message: "Post flagged successfully.", post });
+  } catch (error) {
+    res.status(500).json({ message: "Error flagging the post.", error: error.message });
+  }
+};

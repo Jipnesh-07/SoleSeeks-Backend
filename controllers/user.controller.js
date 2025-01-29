@@ -612,3 +612,35 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.toggleUserBlockStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Sanitize the userId by trimming any unwanted characters
+    const sanitizedUserId = userId.trim();
+
+    // Find the user by the sanitized userId
+    const user = await User.findById(sanitizedUserId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Toggle the user's block status
+    user.isBlocked = !user.isBlocked;
+    await user.save();
+
+    const statusMessage = user.isBlocked
+      ? "User has been blocked."
+      : "User has been unblocked.";
+
+    res.status(200).json({ message: statusMessage, user });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error toggling user block status.",
+      error: error.message,
+    });
+  }
+};
+

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const UserController = require("../controllers/user.controller");
 const authMiddleware = require("../middleware/auth.middleware");
+const isAdmin = require('../middleware/auth.middleware');
 
 router.post("/login", UserController.login);
 router.post("/register", UserController.register);
@@ -29,5 +30,7 @@ router.post("/cart/remove", authMiddleware, UserController.removeFromCart)
 
 router.post("/rate", authMiddleware, UserController.rateUser);
 router.get("/topSellers", UserController.getTopSellers)
+
+router.post("/toggle-block-user/:userId", authMiddleware, isAdmin, UserController.toggleUserBlockStatus);
 
 module.exports = router;

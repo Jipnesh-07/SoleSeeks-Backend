@@ -17,6 +17,8 @@ const UserSchema = new mongoose.Schema({
     isVerified: { type: Boolean, default: false }, // Email verification status
     resetPasswordToken: { type: String },          // Token for password reset
     resetPasswordExpires: { type: Date },          // Expiry for reset token
+    warnings: { type: Number, default: 0 }, // New field for warnings
+    isBlocked: {type: Boolean, default: false}, // new field to block users who are violatin app rules and regulations 
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);
