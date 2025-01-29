@@ -102,4 +102,42 @@ router.get('/recent/', authMiddleware, async (req, res) => {
 });
 
 
+// Delete chat between two users
+router.delete('/delete-chat/:participantId', authMiddleware, async (req, res) => {
+  const { participantId } = req.params; // The user to delete the chat with
+  const senderId = req.user._id; // Get sender's ID from JWT
+
+  if (!participantId) {
+    return res.status(400).json({ error: 'Invalid request data' });
+  }
+
+  try {
+    // Find the chat between the sender and the participant
+    const chat = await Chat.findOne({
+      participants: { $all: [senderId, participantId] },
+    });
+
+    console.log('Chat Found:', chat);  // Debugging: Check if chat is found
+
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat not found' });
+    }
+
+    // Check if the user is part of the chat (either sender or participant)
+    if (!chat.participants.includes(senderId)) {
+      return res.status(403).json({ message: 'You are not authorized to delete this chat' });
+    }
+
+    // Delete the chat from the database using deleteOne
+    await Chat.deleteOne({ _id: chat._id });
+
+    res.status(200).json({ message: 'Chat deleted successfully' });
+  } catch (err) {
+    console.error('Error:', err); // Debugging: Log the error
+    res.status(500).json({ error: 'Failed to delete chat', details: err.message });
+  }
+});
+
+
+
 module.exports = router;
