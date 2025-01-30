@@ -344,3 +344,33 @@ exports.flagPost = async (req, res) => {
     res.status(500).json({ message: "Error flagging the post.", error: error.message });
   }
 };
+
+// Get flags for a particular post by ID
+exports.getPostFlags = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    // Find the post by ID
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found." });
+    }
+
+    // Extract the flags and flag types
+    const { flags } = post;
+    const flagDetails = Object.entries(flags).reduce((acc, [key, value]) => {
+      if (key !== "totalFlags") {
+        acc.push({ type: key, count: value });
+      }
+      return acc;
+    }, []);
+
+    res.status(200).json({
+      totalFlags: flags.totalFlags || 0,
+      flagDetails,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving post flags.", error: error.message });
+  }
+};

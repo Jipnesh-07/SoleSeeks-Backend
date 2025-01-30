@@ -12,7 +12,8 @@ const {
   updateCommunity,
   deleteCommunity,
   getLeftCommunities,
-  flagPost
+  flagPost,
+  getPostFlags
 } = require("../controllers/community.controller");
 
 // Middleware to ensure user is authenticated
@@ -50,4 +51,5 @@ router.get("/posts/:communityId", getPostsByCommunity);
 
 router.post("/posts/:postId/flag", authenticate, flagPost);
 
+router.get("/posts/flagged/:postId", getPostFlags)
 module.exports = router;

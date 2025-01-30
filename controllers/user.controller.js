@@ -141,6 +141,7 @@ exports.login = async (req, res) => {
         joinedCommunities: user.joinedCommunities,
         ratings: user.ratings,
         isVerified: user.isVerified,
+        isBlocked: user.isBlocked
       },
     });
   } catch (err) {
