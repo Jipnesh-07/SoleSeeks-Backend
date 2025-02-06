@@ -141,7 +141,7 @@ exports.login = async (req, res) => {
         joinedCommunities: user.joinedCommunities,
         ratings: user.ratings,
         isVerified: user.isVerified,
-        isBlocked: user.isBlocked
+        isBlocked: user.isBlocked,
       },
     });
   } catch (err) {
@@ -184,6 +184,7 @@ exports.guestLogin = async (req, res) => {
         joinedCommunities: user.joinedCommunities,
         ratings: user.ratings,
         isVerified: user.isVerified,
+        isBlocked: user.isBlocked,
       },
     });
   } catch (error) {
@@ -617,7 +618,7 @@ exports.changePassword = async (req, res) => {
 exports.toggleUserBlockStatus = async (req, res) => {
   try {
     const { userId } = req.params;
-    
+
     // Sanitize the userId by trimming any unwanted characters
     const sanitizedUserId = userId.trim();
 
@@ -644,4 +645,3 @@ exports.toggleUserBlockStatus = async (req, res) => {
     });
   }
 };
-
